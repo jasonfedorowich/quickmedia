@@ -1,4 +1,4 @@
-# quickmedia
+# Quickmedia
 image and video service using reactive grpc with rest support using java spring and mongodb
 
 dependencies:
