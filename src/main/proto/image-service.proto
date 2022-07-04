@@ -16,6 +16,7 @@ message DataChunk{
 
 message UploadRequest{
   DataChunk data = 1;
+  Key key = 2;
 }
 
 message UploadResponse{

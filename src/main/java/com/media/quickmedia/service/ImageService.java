@@ -1,5 +1,6 @@
 package com.media.quickmedia.service;
 
+import com.google.protobuf.ByteString;
 import com.media.quickmedia.model.Image;
 import com.media.quickmedia.repository.ImageRepository;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +35,13 @@ public class ImageService {
                 .flatMap(imageRepository::save);
 
     }
+    public Mono<Image> saveImage(ByteString bytes, String name){
+        return Mono.just(Image.builder()
+                .name(name)
+                .content(bytes.toByteArray())
+                        .build())
+                .flatMap(imageRepository::save);
+    }
 
     public Mono<InputStreamResource> getImage(String id){
         return imageRepository.findById(id)
@@ -40,5 +49,10 @@ public class ImageService {
                     InputStreamResource inputStreamResource = new InputStreamResource(new ByteArrayInputStream(image.getContent()));
                     return Mono.just(inputStreamResource);
                 });
+    }
+
+    public Mono<InputStream> getImageStream(String id){
+        return imageRepository.findById(id)
+                .flatMap(image -> Mono.just(new ByteArrayInputStream(image.getContent())));
     }
 }
