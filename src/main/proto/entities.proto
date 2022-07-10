@@ -1,0 +1,33 @@
+syntax = "proto3";
+package service.grpc;
+
+
+option java_package = "com.proto.service";
+option java_multiple_files = true;
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+message Key{
+  string key = 1;
+}
+message DataChunk{
+  bytes data = 1;
+  int32 size = 2;
+}
+
+message UploadRequest{
+  DataChunk data = 1;
+  Key key = 2;
+}
+
+message UploadResponse{
+  Key key = 1;
+}
+
+message DownloadRequest{
+  Key key = 1;
+}
+
+message DownloadResponse{
+  DataChunk data = 1;
+}

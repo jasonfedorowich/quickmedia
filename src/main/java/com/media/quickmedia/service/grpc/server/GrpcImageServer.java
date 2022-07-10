@@ -2,6 +2,7 @@ package com.media.quickmedia.service.grpc.server;
 
 import com.google.common.util.concurrent.UncaughtExceptionHandlers;
 import com.media.quickmedia.service.grpc.GrpcImageService;
+import com.media.quickmedia.service.grpc.GrpcVideoService;
 import io.grpc.Server;
 import io.grpc.netty.NettyServerBuilder;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ public class GrpcImageServer implements CommandLineRunner {
 
     private Server server;
     private final GrpcImageService grpcImageService;
+    private final GrpcVideoService grpcVideoService;
 
 
     @Override
@@ -28,6 +30,7 @@ public class GrpcImageServer implements CommandLineRunner {
 
        server = NettyServerBuilder.forPort(9999)
                 .addService(grpcImageService)
+                .addService(grpcVideoService)
                 .executor(getServerExecuter(1))
                 .build();
 
