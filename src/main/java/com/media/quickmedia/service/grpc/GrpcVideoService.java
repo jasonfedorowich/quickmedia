@@ -13,6 +13,7 @@ import com.proto.service.UploadResponse;
 import com.salesforce.grpc.contrib.spring.GrpcService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.io.IOException;
@@ -63,5 +64,24 @@ public class GrpcVideoService extends ReactorVideoServiceGrpc.VideoServiceImplBa
                         )
                         .build()));
 
+    }
+
+    @Override
+    public Flux<DownloadResponse> downloadStream(Mono<DownloadRequest> request) {
+        return request.doOnNext(downloadRequest -> log.info("Recieved request: {}", downloadRequest.getKey().getKey())
+        )
+                .flatMapMany(downloadRequest -> {
+                    return this.mediaService.downloadStream(downloadRequest.getKey().getKey());
+                })
+                .flatMap(bytes -> {
+                    ByteString byteString = ByteString.copyFrom(bytes);
+                    return Flux.just(byteString);
+                })
+                .flatMap(bytes -> Flux.just(DownloadResponse.newBuilder()
+                        .setData(
+                                DataChunk.newBuilder()
+                                        .setData(bytes)
+                                        .setSize(bytes.size())
+                                        .build()).build()));
     }
 }

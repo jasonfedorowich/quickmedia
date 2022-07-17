@@ -52,7 +52,15 @@ public class MediaService {
     }
 
 
+    public Flux<byte[]> downloadStream(String id) {
+        return gridFsTemplate.findOne(query(where("_id").is(id)))
+                .log()
+                .flatMap(gridFsTemplate::getResource)
+                .flatMapMany(ReactiveGridFsResource::getDownloadStream)
+                .flatMap(dataBuffer -> {
+                    byte[] bytes = dataBuffer.asByteBuffer().array();
+                    return Flux.just(bytes);
+                });
 
-
-
+    }
 }
