@@ -63,4 +63,19 @@ public class MediaService {
                 });
 
     }
+
+    public Mono<ObjectId> uploadStream(Flux<ByteString> bytes, String fileName){
+        return bytes.map(ByteString::toByteArray)
+        .map(bytes1 -> {
+            DefaultDataBufferFactory dataBufferFactory = new DefaultDataBufferFactory();
+            return dataBufferFactory.wrap(bytes1);
+        })
+                .collectList()
+                .flatMap(defaultDataBuffers -> {
+                    DefaultDataBufferFactory dataBufferFactory = new DefaultDataBufferFactory();
+                    var dataBuffer = dataBufferFactory.join(defaultDataBuffers);
+                    return gridFsTemplate.store(Flux.just(dataBuffer), fileName);
+                });
+    }
+
 }

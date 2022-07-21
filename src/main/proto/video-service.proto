@@ -12,5 +12,5 @@ service VideoService{
   rpc upload(UploadRequest) returns (UploadResponse);
   rpc download(DownloadRequest) returns (DownloadResponse);
   rpc downloadStream(DownloadRequest) returns (stream DownloadResponse);
-  rpc uploadStream(stream )
+  rpc uploadStream(stream UploadRequest) returns (UploadResponse);
 }

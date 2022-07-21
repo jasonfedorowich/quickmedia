@@ -2,7 +2,6 @@ package com.media.quickmedia.service.grpc;
 
 import com.google.protobuf.ByteString;
 import com.media.quickmedia.service.MediaService;
-import com.proto.service.*;
 import com.proto.service.DataChunk;
 import com.proto.service.DownloadRequest;
 import com.proto.service.DownloadResponse;
@@ -17,6 +16,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicReference;
 
 @GrpcService
 @Slf4j
@@ -42,7 +42,7 @@ public class GrpcVideoService extends ReactorVideoServiceGrpc.VideoServiceImplBa
     @Override
     public Mono<DownloadResponse> download(Mono<DownloadRequest> request) {
         return request.doOnNext(downloadRequest -> {
-            log.info("Recieved request: {}", downloadRequest.getKey().getKey());
+            log.info("Received request: {}", downloadRequest.getKey().getKey());
         })
                 .flatMap(downloadRequest -> mediaService.downloadLarge(downloadRequest.getKey().getKey()))
                 .flatMap(inputStream -> {
@@ -68,11 +68,9 @@ public class GrpcVideoService extends ReactorVideoServiceGrpc.VideoServiceImplBa
 
     @Override
     public Flux<DownloadResponse> downloadStream(Mono<DownloadRequest> request) {
-        return request.doOnNext(downloadRequest -> log.info("Recieved request: {}", downloadRequest.getKey().getKey())
+        return request.doOnNext(downloadRequest -> log.info("Received request: {}", downloadRequest.getKey().getKey())
         )
-                .flatMapMany(downloadRequest -> {
-                    return this.mediaService.downloadStream(downloadRequest.getKey().getKey());
-                })
+                .flatMapMany(downloadRequest -> mediaService.downloadStream(downloadRequest.getKey().getKey()))
                 .flatMap(bytes -> {
                     ByteString byteString = ByteString.copyFrom(bytes);
                     return Flux.just(byteString);
@@ -83,5 +81,34 @@ public class GrpcVideoService extends ReactorVideoServiceGrpc.VideoServiceImplBa
                                         .setData(bytes)
                                         .setSize(bytes.size())
                                         .build()).build()));
+    }
+
+    @Override
+    public Mono<UploadResponse> uploadStream(Flux<UploadRequest> request) {
+        AtomicReference<String> fileName = new AtomicReference<>("");
+        return request
+                .doOnNext(uploadRequest->
+                        log.info("Received request to upload: {}", uploadRequest.getKey().getKey()))
+                .map(uploadRequest -> {
+                    fileName.set(uploadRequest.getKey().getKey());
+                    return uploadRequest.getData().getData();
+
+                }).collectList()
+                .flatMap(byteStrings -> {
+                    ByteString[] byteStrings1 = new ByteString[byteStrings.size()];
+                    byteStrings1 = byteStrings.toArray(byteStrings1);
+                    return mediaService.uploadStream(Flux.just(byteStrings1), fileName.get());
+                })
+                .flatMap(objectId -> {
+                    UploadResponse uploadResponse = UploadResponse
+                            .newBuilder()
+                            .setKey(Key.newBuilder()
+                                    .setKey(objectId.toHexString()).build())
+                            .build();
+                    return Mono.just(uploadResponse);
+                });
+
+
+
     }
 }
