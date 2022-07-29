@@ -3,6 +3,7 @@ package com.media.quickmedia.service;
 import com.media.quickmedia.model.Image;
 import com.media.quickmedia.model.Video;
 import com.media.quickmedia.repository.VideoRepository;
+import com.media.quickmedia.service.error.RepositoryException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.InputStreamResource;
@@ -31,7 +32,10 @@ public class VideoService {
                             .content(bytes)
                             .build());
                 })
-                .flatMap(videoRepository::save);
+                .flatMap(videoRepository::save)
+                .doOnError(ignored->{
+                    throw new RepositoryException(String.format("Failed to save video: %s", filePart.filename()));
+                });
 
     }
 
@@ -40,6 +44,7 @@ public class VideoService {
                 .flatMap(image -> {
                     InputStreamResource inputStreamResource = new InputStreamResource(new ByteArrayInputStream(image.getContent()));
                     return Mono.just(inputStreamResource);
-                });
+                })
+                .switchIfEmpty(Mono.error(new RepositoryException(String.format("Unable to find file with id: %s", id))));
     }
 }

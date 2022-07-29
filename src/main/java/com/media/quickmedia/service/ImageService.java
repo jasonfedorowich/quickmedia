@@ -3,6 +3,7 @@ package com.media.quickmedia.service;
 import com.google.protobuf.ByteString;
 import com.media.quickmedia.model.Image;
 import com.media.quickmedia.repository.ImageRepository;
+import com.media.quickmedia.service.error.RepositoryException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.InputStreamResource;
@@ -12,7 +13,6 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 
 @Service
 @RequiredArgsConstructor
@@ -32,7 +32,10 @@ public class ImageService {
                             .content(bytes)
                             .build());
                 })
-                .flatMap(imageRepository::save);
+                .flatMap(imageRepository::save)
+                .doOnError(error->{
+                    throw new RepositoryException("Cannot save filepart: "+ filePart.filename());
+                });
 
     }
     public Mono<Image> saveImage(ByteString bytes, String name){
@@ -40,7 +43,10 @@ public class ImageService {
                 .name(name)
                 .content(bytes.toByteArray())
                         .build())
-                .flatMap(imageRepository::save);
+                .flatMap(imageRepository::save)
+                .doOnError(error->{
+                    throw new RepositoryException("Cannot save file: "+ name);
+                });
     }
 
     public Mono<InputStreamResource> getImage(String id){
@@ -48,11 +54,12 @@ public class ImageService {
                 .flatMap(image -> {
                     InputStreamResource inputStreamResource = new InputStreamResource(new ByteArrayInputStream(image.getContent()));
                     return Mono.just(inputStreamResource);
-                });
+                }).switchIfEmpty(Mono.error(new RepositoryException(String.format("Cannot find image by id %s", id))));
     }
 
-    public Mono<InputStream> getImageStream(String id){
+    public Mono<ByteArrayInputStream> getImageStream(String id){
         return imageRepository.findById(id)
-                .flatMap(image -> Mono.just(new ByteArrayInputStream(image.getContent())));
+                .flatMap(image -> Mono.just(new ByteArrayInputStream(image.getContent())))
+                .switchIfEmpty(Mono.error(new RepositoryException(String.format("Cannot find image by id %s", id))));
     }
 }
