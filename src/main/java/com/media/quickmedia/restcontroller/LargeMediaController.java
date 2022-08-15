@@ -1,5 +1,6 @@
 package com.media.quickmedia.restcontroller;
 
+import com.media.quickmedia.restcontroller.error.RestControllerRequestException;
 import com.media.quickmedia.service.MediaService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +25,10 @@ public class LargeMediaController {
         return filePartMono.doOnNext(filePart -> {
                     log.info("Received new file with name {}", filePart.filename());
                 }).flatMap(mediaService::saveLarge)
-                .flatMap(objectId -> Mono.just(objectId.toHexString()));
+                .flatMap(objectId -> Mono.just(objectId.toHexString()))
+                .onErrorMap(error->{
+                    throw new RestControllerRequestException(error);
+                });
 
 
     }
@@ -32,7 +36,14 @@ public class LargeMediaController {
     @GetMapping(value = "/large-download/{id}",
             produces = APPLICATION_OCTET_STREAM_VALUE)
     public Flux<Void> getLargeImage(@PathVariable("id") String id, ServerWebExchange serverWebExchange) {
-        return mediaService.downloadLarge(id, serverWebExchange);
+        return Mono.just(id)
+                .flatMapMany(_id-> {
+                    return mediaService.downloadLarge(_id, serverWebExchange);
+                })
+                .log()
+                .onErrorMap(error->{
+                    throw new RestControllerRequestException(error);
+                });
     }
 
 

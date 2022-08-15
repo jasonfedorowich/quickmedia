@@ -5,6 +5,7 @@ import com.media.quickmedia.QuickmediaApplication;
 import com.media.quickmedia.config.MongoDbTestConfiguration;
 import com.media.quickmedia.model.Image;
 import com.media.quickmedia.repository.ImageRepository;
+import com.media.quickmedia.repository.config.GridFsConfiguration;
 import com.media.quickmedia.restcontroller.RestImageController;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
@@ -26,10 +27,9 @@ import java.io.ByteArrayInputStream;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.http.MediaType.MULTIPART_FORM_DATA;
 
-@ActiveProfiles(profiles = "test")
 @Import({MongoDbTestConfiguration.class})
 @AutoConfigureDataMongo
-@SpringBootTest(classes = QuickmediaApplication.class, webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 @ExtendWith(SpringExtension.class)
 @Slf4j
 public class ImageServiceIntegrationTest {
@@ -39,6 +39,9 @@ public class ImageServiceIntegrationTest {
 
     @Autowired
     RestImageController restImageController;
+
+    @Autowired
+    GridFsConfiguration gridFsConfiguration;
 
     WebTestClient webTestClient;
 

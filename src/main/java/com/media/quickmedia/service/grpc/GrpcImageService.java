@@ -11,6 +11,8 @@ import com.proto.service.ReactorImageServiceGrpc;
 import com.proto.service.UploadRequest;
 import com.proto.service.UploadResponse;
 import com.salesforce.grpc.contrib.spring.GrpcService;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
@@ -26,13 +28,21 @@ public class GrpcImageService extends ReactorImageServiceGrpc.ImageServiceImplBa
     @Override
     public Mono<UploadResponse> upload(Mono<UploadRequest> request) {
         return request.doOnNext(uploadRequest -> log.info("Received request: {}", uploadRequest.getKey().getKey()))
-                .flatMap(uploadRequest -> imageService.saveImage(uploadRequest.getData().getData(), uploadRequest
+                .flatMap(uploadRequest -> imageService.saveImage(uploadRequest
+                                .getData()
+                                .getData(),
+
+                                uploadRequest
                                 .getKey()
                                 .getKey())
                 .flatMap(image -> Mono.just(UploadResponse.newBuilder()
                         .setKey(Key.newBuilder()
                                 .setKey(image.getId()).build())
-                        .build())));
+                        .build())))
+                .onErrorMap(ignored-> {
+                    log.error("Error received from upload: {}", ignored.getMessage());
+                    throw new StatusRuntimeException(Status.UNAVAILABLE);
+                });
     }
 
     @Override
@@ -55,6 +65,10 @@ public class GrpcImageService extends ReactorImageServiceGrpc.ImageServiceImplBa
                     } catch (IOException e) {
                         return Mono.error(e);
                     }
+                })
+                .onErrorMap(ignored->{
+                    log.error("Error received from download: {}", ignored.getMessage());
+                    throw new StatusRuntimeException(Status.UNAVAILABLE);
                 });
     }
 }

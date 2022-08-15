@@ -10,6 +10,8 @@ import com.proto.service.ReactorVideoServiceGrpc;
 import com.proto.service.UploadRequest;
 import com.proto.service.UploadResponse;
 import com.salesforce.grpc.contrib.spring.GrpcService;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
@@ -36,7 +38,11 @@ public class GrpcVideoService extends ReactorVideoServiceGrpc.VideoServiceImplBa
                         UploadResponse.newBuilder()
                         .setKey(
                                 Key.newBuilder()
-                                .setKey(objectId.toHexString()).build()).build()));
+                                .setKey(objectId.toHexString()).build()).build()))
+                .onErrorMap(ignored->{
+                    log.error("Error received from media upload: {}", ignored.getMessage());
+                    throw new StatusRuntimeException(Status.UNAVAILABLE);
+                });
     }
 
     @Override
@@ -62,7 +68,11 @@ public class GrpcVideoService extends ReactorVideoServiceGrpc.VideoServiceImplBa
                                         .setData(bytes)
                                         .build()
                         )
-                        .build()));
+                        .build()))
+                .onErrorMap(ignored->{
+                    log.error("Error received from download request: {}", ignored.getMessage());
+                    throw new StatusRuntimeException(Status.UNAVAILABLE);
+                });
 
     }
 
@@ -80,7 +90,11 @@ public class GrpcVideoService extends ReactorVideoServiceGrpc.VideoServiceImplBa
                                 DataChunk.newBuilder()
                                         .setData(bytes)
                                         .setSize(bytes.size())
-                                        .build()).build()));
+                                        .build()).build()))
+                .onErrorMap(error->{
+                    log.error("Error received from download stream: {}", error.getMessage());
+                    throw new StatusRuntimeException(Status.UNAVAILABLE);
+                });
     }
 
     @Override
@@ -106,6 +120,10 @@ public class GrpcVideoService extends ReactorVideoServiceGrpc.VideoServiceImplBa
                                     .setKey(objectId.toHexString()).build())
                             .build();
                     return Mono.just(uploadResponse);
+                })
+                .onErrorMap(error->{
+                    log.error("Error received from upload stream: {}", error.getMessage());
+                    throw new StatusRuntimeException(Status.UNAVAILABLE);
                 });
 
 
