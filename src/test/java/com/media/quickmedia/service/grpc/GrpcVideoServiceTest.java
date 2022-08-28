@@ -2,10 +2,7 @@ package com.media.quickmedia.service.grpc;
 
 import com.google.protobuf.ByteString;
 import com.media.quickmedia.service.MediaService;
-import com.proto.service.DataChunk;
-import com.proto.service.DownloadRequest;
-import com.proto.service.Key;
-import com.proto.service.UploadRequest;
+import com.proto.service.*;
 import io.grpc.StatusRuntimeException;
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.BeforeEach;
@@ -180,5 +177,36 @@ class GrpcVideoServiceTest {
                 .verifyErrorSatisfies(error->{
                     assertTrue(error instanceof StatusRuntimeException);
                 });
+    }
+
+    @Test
+    void when_deleteVideo_success_thenReturns(){
+        ObjectId expected = new ObjectId("62c314e22525c96a4ae223b3");
+        when(mediaService.delete(any())).thenReturn(Mono.just(expected));
+
+        var request = DeleteRequest.newBuilder()
+                .setKey(Key.newBuilder()
+                        .setKey("62c314e22525c96a4ae223b3").build())
+                .build();
+
+        StepVerifier.create(grpcVideoService.deleteVideo(Mono.just(request)))
+                .consumeNextWith(deleteResponse -> {
+                    assertEquals("62c314e22525c96a4ae223b3", deleteResponse.getKey().getKey());
+                }).verifyComplete();
+    }
+    @Test
+    void when_deleteVideo_fails_thenThrows(){
+        when(mediaService.delete(any())).thenThrow(new RuntimeException());
+
+        var request = DeleteRequest.newBuilder()
+                .setKey(Key.newBuilder()
+                        .setKey("62c314e22525c96a4ae223b3").build())
+                .build();
+
+        StepVerifier.create(grpcVideoService.deleteVideo(Mono.just(request)))
+                .verifyErrorSatisfies(error->{
+                    assertTrue(error instanceof StatusRuntimeException);
+                });
+
     }
 }

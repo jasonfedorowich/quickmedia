@@ -31,3 +31,11 @@ message DownloadRequest{
 message DownloadResponse{
   DataChunk data = 1;
 }
+
+message DeleteRequest{
+  Key key = 1;
+}
+
+message DeleteResponse{
+  Key key = 1;
+}

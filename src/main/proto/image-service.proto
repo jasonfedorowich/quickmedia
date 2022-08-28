@@ -10,4 +10,6 @@ import "entities.proto";
 service ImageService{
   rpc upload(UploadRequest) returns (UploadResponse);
   rpc download(DownloadRequest) returns (DownloadResponse);
+  rpc deleteImage(DeleteRequest) returns (DeleteResponse);
+
 }

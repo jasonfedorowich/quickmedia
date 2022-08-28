@@ -2,18 +2,13 @@ package com.media.quickmedia.service.grpc;
 
 import com.google.protobuf.ByteString;
 import com.media.quickmedia.service.MediaService;
-import com.proto.service.DataChunk;
-import com.proto.service.DownloadRequest;
-import com.proto.service.DownloadResponse;
-import com.proto.service.Key;
-import com.proto.service.ReactorVideoServiceGrpc;
-import com.proto.service.UploadRequest;
-import com.proto.service.UploadResponse;
+import com.proto.service.*;
 import com.salesforce.grpc.contrib.spring.GrpcService;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.bson.types.ObjectId;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -126,7 +121,21 @@ public class GrpcVideoService extends ReactorVideoServiceGrpc.VideoServiceImplBa
                     throw new StatusRuntimeException(Status.UNAVAILABLE);
                 });
 
+    }
 
+    @Override
+    public Mono<DeleteResponse> deleteVideo(Mono<DeleteRequest> request) {
+        return request.doOnNext(next->{
+                    log.info("Received request to delete media {}", next.getKey().getKey());
+                })
+                .flatMap(deleteRequest -> mediaService.delete(new ObjectId(deleteRequest.getKey().getKey())))
+                .flatMap(objectId -> Mono.just(DeleteResponse.newBuilder()
+                        .setKey(Key.newBuilder()
+                                .setKey(objectId.toHexString()).build()).build()))
+                .onErrorMap(error->{
+                    log.error("Error received from delete request: {}", error.getMessage());
+                    throw new StatusRuntimeException(Status.UNAVAILABLE);
+                });
 
     }
 }

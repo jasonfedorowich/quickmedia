@@ -275,4 +275,28 @@ class MediaServiceTest {
                 }
         );
     }
+
+    @Test
+    void when_deleteFile_success_thenReturns(){
+        when(fsTemplate.delete(any()))
+                .thenReturn(Mono.empty());
+
+        var oi = new ObjectId("62c314e22525c96a4ae223b3");
+        StepVerifier.create(mediaService.delete(oi))
+                .consumeNextWith(objectId -> {
+                    assertEquals(oi, objectId);
+                }).verifyComplete();
+    }
+
+    @Test
+    void when_deleteFile_fails_thenThrows(){
+        when(fsTemplate.delete(any()))
+                .thenThrow(new RuntimeException());
+
+        var oi = new ObjectId("62c314e22525c96a4ae223b3");
+        StepVerifier.create(mediaService.delete(oi))
+                .verifyErrorSatisfies(error->{
+                    assertTrue(error instanceof RepositoryException);
+                });
+    }
 }

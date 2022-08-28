@@ -18,6 +18,7 @@ import reactor.test.StepVerifier;
 import java.io.ByteArrayInputStream;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -89,6 +90,26 @@ class RestImageControllerTest {
                 .verifyErrorSatisfies(error -> {
                     assertTrue(error instanceof RestControllerRequestException);
         });
+    }
+
+    @Test
+    void when_deleteImage_success_thenReturns(){
+        when(imageService.removeImage(anyString())).thenReturn(Mono.just("my-id"));
+
+        StepVerifier.create(restImageController.deleteImage("my-id"))
+                .consumeNextWith(response->{
+                    assertEquals("my-id", response);
+                }).verifyComplete();
+    }
+
+    @Test
+    void when_deleteImage_fails_thenThrows(){
+        when(imageService.removeImage(anyString())).thenThrow(new RuntimeException());
+
+        StepVerifier.create(restImageController.deleteImage("my-id"))
+                .verifyErrorSatisfies(error->{
+                    assertTrue(error instanceof RestControllerRequestException);
+                });
     }
 
 

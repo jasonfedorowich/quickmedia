@@ -19,6 +19,7 @@ import java.io.ByteArrayInputStream;
 import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -91,5 +92,26 @@ class RestVideoControllerTest {
                     assertTrue(error instanceof RestControllerRequestException);
                 });
 
+    }
+
+    @Test
+    void when_deleteVideo_success_thenReturns(){
+        when(videoService.delete(anyString())).thenReturn(Mono.just("my-id"));
+
+        StepVerifier.create(restVideoController.deleteVideo("my-id"))
+                .consumeNextWith(response->{
+                    assertEquals("my-id", response);
+                }).verifyComplete();
+
+    }
+
+    @Test
+    void when_deleteVideo_fails_thenThrows(){
+        when(videoService.delete(anyString())).thenThrow(new RuntimeException());
+
+        StepVerifier.create(restVideoController.deleteVideo("my-id"))
+                .verifyErrorSatisfies(error->{
+                    assertTrue(error instanceof RestControllerRequestException);
+                });
     }
 }

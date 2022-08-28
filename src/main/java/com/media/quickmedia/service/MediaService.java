@@ -100,4 +100,14 @@ public class MediaService {
                 });
     }
 
+    public Mono<ObjectId> delete(ObjectId objectId){
+        return Mono.just(objectId)
+                .log()
+                .flatMap(_id-> gridFsTemplate.delete(query(where("_id").is(_id))))
+                .doOnError(error->{
+                    throw new RepositoryException(String.format("Cannot delete file with id: %s", objectId.toHexString()));
+                })
+                .thenReturn(objectId);
+    }
+
 }

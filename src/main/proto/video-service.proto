@@ -13,4 +13,5 @@ service VideoService{
   rpc download(DownloadRequest) returns (DownloadResponse);
   rpc downloadStream(DownloadRequest) returns (stream DownloadResponse);
   rpc uploadStream(stream UploadRequest) returns (UploadResponse);
+  rpc deleteVideo(DeleteRequest) returns (DeleteResponse);
 }

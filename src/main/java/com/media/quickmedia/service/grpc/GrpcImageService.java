@@ -71,4 +71,19 @@ public class GrpcImageService extends ReactorImageServiceGrpc.ImageServiceImplBa
                     throw new StatusRuntimeException(Status.UNAVAILABLE);
                 });
     }
+
+    @Override
+    public Mono<DeleteResponse> deleteImage(Mono<DeleteRequest> request) {
+        return request.doOnNext(next->{
+            log.info("Received request to delete image {}", next.getKey().getKey());
+        })
+                .flatMap(deleteRequest -> imageService.removeImage(deleteRequest.getKey().getKey()))
+                .flatMap(objectId-> Mono.just(DeleteResponse.newBuilder()
+                        .setKey(Key.newBuilder()
+                                .setKey(objectId).build()).build()))
+                .onErrorMap(ignored->{
+                    log.error("Error received from delete: {}", ignored.getMessage());
+                    throw new StatusRuntimeException(Status.UNAVAILABLE);
+                });
+    }
 }

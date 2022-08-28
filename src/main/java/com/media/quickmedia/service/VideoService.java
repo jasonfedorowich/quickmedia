@@ -47,4 +47,13 @@ public class VideoService {
                 })
                 .switchIfEmpty(Mono.error(new RepositoryException(String.format("Unable to find file with id: %s", id))));
     }
+
+    public Mono<String> delete(String id){
+        return Mono.just(id)
+                .flatMap(videoRepository::deleteById)
+                .doOnError(error->{
+                    throw new RepositoryException(String.format("Failed to remove video with id: %s", id));
+                })
+                .thenReturn(id);
+    }
 }

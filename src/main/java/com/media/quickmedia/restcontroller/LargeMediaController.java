@@ -4,6 +4,7 @@ import com.media.quickmedia.restcontroller.error.RestControllerRequestException;
 import com.media.quickmedia.service.MediaService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.bson.types.ObjectId;
 import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ServerWebExchange;
@@ -44,6 +45,18 @@ public class LargeMediaController {
                 .onErrorMap(error->{
                     throw new RestControllerRequestException(error);
                 });
+    }
+
+    @DeleteMapping("/{id}")
+    public Mono<String> delete(@PathVariable("id") String id){
+        return Mono.just(id)
+                .flatMap(_id-> mediaService.delete(new ObjectId(_id)))
+                .onErrorMap(error->{
+                    log.error("Failed to delete file: {}", error.getMessage());
+                    throw new RestControllerRequestException(error);
+                })
+                .log()
+                .thenReturn(id);
     }
 
 

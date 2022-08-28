@@ -3,10 +3,7 @@ package com.media.quickmedia.service.grpc;
 import com.google.protobuf.ByteString;
 import com.media.quickmedia.model.Image;
 import com.media.quickmedia.service.ImageService;
-import com.proto.service.DataChunk;
-import com.proto.service.DownloadRequest;
-import com.proto.service.Key;
-import com.proto.service.UploadRequest;
+import com.proto.service.*;
 import io.grpc.StatusRuntimeException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -103,6 +100,34 @@ class GrpcImageServiceTest {
 
         StepVerifier.create(grpcImageService.download(Mono.just(downloadRequest)))
                 .verifyErrorSatisfies(error->{
+                    assertTrue(error instanceof StatusRuntimeException);
+                });
+    }
+
+    @Test
+    void when_delete_success_thenReturns(){
+        when(imageService.removeImage(anyString())).thenReturn(Mono.just("my-id"));
+
+        var request = DeleteRequest
+                .newBuilder()
+                .setKey(Key.newBuilder()
+                        .setKey("my-id").build()).build();
+        StepVerifier.create(grpcImageService.deleteImage(Mono.just(request)))
+                .consumeNextWith(deleteResponse -> {
+                    assertEquals("my-id", deleteResponse.getKey().getKey());
+                }).verifyComplete();
+    }
+
+    @Test
+    void when_delete_fails_thenThrows(){
+        when(imageService.removeImage(anyString())).thenThrow(new RuntimeException());
+
+        var request = DeleteRequest
+                .newBuilder()
+                .setKey(Key.newBuilder()
+                        .setKey("my-id").build()).build();
+        StepVerifier.create(grpcImageService.deleteImage(Mono.just(request)))
+                .verifyErrorSatisfies(error -> {
                     assertTrue(error instanceof StatusRuntimeException);
                 });
     }

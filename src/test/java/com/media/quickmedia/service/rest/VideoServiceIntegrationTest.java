@@ -2,11 +2,12 @@ package com.media.quickmedia.service.rest;
 
 import com.google.gson.Gson;
 import com.media.quickmedia.config.MongoDbTestConfiguration;
-import com.media.quickmedia.model.Image;
-import com.media.quickmedia.repository.ImageRepository;
+import com.media.quickmedia.model.Video;
+import com.media.quickmedia.repository.VideoRepository;
 import com.media.quickmedia.repository.config.GridFsConfiguration;
-import com.media.quickmedia.restcontroller.RestImageController;
+import com.media.quickmedia.restcontroller.RestVideoController;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,6 +22,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.http.MediaType.MULTIPART_FORM_DATA;
 
 @Import({MongoDbTestConfiguration.class})
@@ -28,13 +30,12 @@ import static org.springframework.http.MediaType.MULTIPART_FORM_DATA;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 @ExtendWith(SpringExtension.class)
 @Slf4j
-public class ImageServiceIntegrationTest {
+public class VideoServiceIntegrationTest {
+    @Autowired
+    VideoRepository videoRepository;
 
     @Autowired
-    ImageRepository imageRepository;
-
-    @Autowired
-    RestImageController restImageController;
+    RestVideoController restVideoController;
 
     @Autowired
     GridFsConfiguration gridFsConfiguration;
@@ -50,18 +51,22 @@ public class ImageServiceIntegrationTest {
                 .baseUrl("http://localhost:9000").build();
     }
 
+    @AfterEach
+    void tearDown(){
+    }
+
     @Test
-    public void when_uploadImage_success_thenDownload_imageSuccess_thenSucceed(){
-        var image = uploadFile();
-        assertFalse(image.getId().isEmpty());
-        downloadImage(image.getId());
-        deleteImage(image.getId());
+    public void when_uploadVideo_success_thenDownload_videoSuccess_thenSucceed(){
+        var video = uploadFile();
+        assertFalse(video.getId().isEmpty());
+        downloadVideo(video.getId());
+        deleteVideo(video.getId());
 
     }
 
-    private void downloadImage(String id) {
+    private void downloadVideo(String id) {
         var res = webTestClient.get()
-                .uri("images/download/" + id)
+                .uri("videos/download/" + id)
                 .exchange()
                 .expectBody()
                 .returnResult();
@@ -77,12 +82,12 @@ public class ImageServiceIntegrationTest {
 
     }
 
-    private Image uploadFile(){
+    private Video uploadFile(){
         MultipartBodyBuilder multipartBodyBuilder = new MultipartBodyBuilder();
-        multipartBodyBuilder.part("file", bytes, MULTIPART_FORM_DATA).filename("my-file.txt");
+        multipartBodyBuilder.part("file", bytes, MULTIPART_FORM_DATA).filename("my-file.mkv");
         var res = webTestClient
                 .post()
-                .uri("/images/upload")
+                .uri("/videos/upload")
                 .contentType(MULTIPART_FORM_DATA)
                 .body(BodyInserters.fromMultipartData(multipartBodyBuilder.build()))
                 .exchange()
@@ -94,26 +99,25 @@ public class ImageServiceIntegrationTest {
         Assertions.assertNotNull(bytes);
         var json = new String(bytes);
         Gson gson = new Gson();
-        Image image = gson.fromJson(json, Image.class);
-        return image;
+        Video video = gson.fromJson(json, Video.class);
+        return video;
 
 
     }
 
-    private void deleteImage(String id){
+    private void deleteVideo(String id){
         var res = webTestClient
                 .delete()
-                .uri("images/" + id)
+                .uri("/videos/" + id)
                 .exchange()
                 ;
-        var bytes = res.expectBody()
+        var bytesFromResponse = res.expectBody()
                 .returnResult()
                 .getResponseBody();
-        Assertions.assertNotNull(bytes);
-        var response = new String(bytes);
-        assertEquals(id, response);
+
+        assertNotNull(bytesFromResponse);
+        assertTrue(res.expectBody().returnResult().getStatus().is2xxSuccessful());
+        assertEquals(id, new String(bytesFromResponse));
     }
-
-
 
 }

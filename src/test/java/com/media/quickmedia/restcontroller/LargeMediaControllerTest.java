@@ -78,4 +78,27 @@ class LargeMediaControllerTest {
                     assertTrue(error instanceof RestControllerRequestException);
                 });
     }
+
+    @Test
+    void when_deleteLarge_success_thenReturns(){
+        ObjectId expected = new ObjectId("62c314e22525c96a4ae223b3");
+        when(mediaService.delete(any())).thenReturn(Mono.just(expected));
+
+        StepVerifier.create(largeMediaController.delete(expected.toHexString()))
+                .consumeNextWith(response->{
+                    assertEquals(expected.toHexString(), response);
+                }).verifyComplete();
+
+    }
+
+    @Test
+    void when_deleteLarge_fails_thenThrows(){
+        ObjectId expected = new ObjectId("62c314e22525c96a4ae223b3");
+        when(mediaService.delete(any())).thenThrow(new RuntimeException());
+
+        StepVerifier.create(largeMediaController.delete(expected.toHexString()))
+                .verifyErrorSatisfies(error->{
+                    assertTrue(error instanceof RestControllerRequestException);
+                });
+    }
 }

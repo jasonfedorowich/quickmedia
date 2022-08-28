@@ -47,4 +47,15 @@ public class RestVideoController {
 
     }
 
+    @DeleteMapping(value = "/{id}")
+    public Mono<String> deleteVideo(@PathVariable("id") String id){
+        return Mono.just(id)
+                .flatMap(videoService::delete)
+                .log()
+                .onErrorMap(error->{
+                    throw new RestControllerRequestException(error);
+                })
+                .thenReturn(id);
+    }
+
 }

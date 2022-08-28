@@ -62,4 +62,13 @@ public class ImageService {
                 .flatMap(image -> Mono.just(new ByteArrayInputStream(image.getContent())))
                 .switchIfEmpty(Mono.error(new RepositoryException(String.format("Cannot find image by id %s", id))));
     }
+
+    public Mono<String> removeImage(String id){
+        return Mono.just(id)
+                .flatMap(imageRepository::deleteById)
+                .doOnError(error->{
+                    throw new RepositoryException(String.format("Failed to remove image with id: %s", id));
+                })
+                .thenReturn(id);
+    }
 }

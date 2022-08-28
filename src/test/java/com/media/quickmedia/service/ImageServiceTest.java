@@ -18,6 +18,8 @@ import reactor.test.StepVerifier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -206,5 +208,29 @@ class ImageServiceTest {
                     assertTrue(error instanceof RepositoryException);
                 });
 
+    }
+
+    @Test
+    void when_removeImage_success_thenReturns(){
+        var id = "id";
+        when(imageRepository.deleteById(id))
+                .thenReturn(Mono.empty());
+
+        StepVerifier.create(imageService.removeImage("id"))
+                .consumeNextWith(_id-> {
+                    assertEquals(id, _id);
+                }).verifyComplete();
+    }
+
+    @Test
+    void when_removeImage_fails_thenThrows(){
+        var id = "id";
+        when(imageRepository.deleteById(id))
+                .thenThrow(new RuntimeException());
+
+        StepVerifier.create(imageService.removeImage("id"))
+                .verifyErrorSatisfies(error->{
+                    assertTrue(error instanceof RepositoryException);
+                });
     }
 }

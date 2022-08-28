@@ -39,11 +39,20 @@ public class RestImageController {
         return Mono.just(id)
                 .log()
                 .flatMap(imageService::getImage)
-                .flatMap(inputStreamResource -> {
-                    return Mono.just(new ResponseEntity<>(inputStreamResource, HttpStatus.OK));
-                })
+                .flatMap(inputStreamResource -> Mono.just(new ResponseEntity<>(inputStreamResource, HttpStatus.OK)))
                 .onErrorMap(error->{
                     throw new RestControllerRequestException(error);
                 });
+    }
+
+    @DeleteMapping(value = "/{id}")
+    public Mono<String> deleteImage(@PathVariable("id") String id){
+        return Mono.just(id)
+                .log()
+                .flatMap(imageService::removeImage)
+                .onErrorMap(error->{
+                    throw new RestControllerRequestException(error);
+                })
+                .thenReturn(id);
     }
 }

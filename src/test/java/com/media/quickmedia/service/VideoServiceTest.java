@@ -16,6 +16,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -105,4 +106,26 @@ class VideoServiceTest {
             assertTrue(error instanceof RepositoryException);
         });
     }
+
+    @Test
+    void when_delete_success_thenReturns(){
+        when(videoRepository.deleteById(anyString()))
+                .thenReturn(Mono.empty());
+
+        StepVerifier.create(videoService.delete("id"))
+                .consumeNextWith(_id->{
+                    assertEquals("id", _id);
+                }).verifyComplete();
+    }
+
+    @Test
+    void when_delete_fails_thenThrows(){
+        when(videoRepository.deleteById(anyString())).thenThrow(new RuntimeException());
+
+        StepVerifier.create(videoService.delete("id"))
+                .verifyErrorSatisfies(error->{
+                    assertTrue(error instanceof RepositoryException);
+                });
+    }
+
 }
