@@ -4,6 +4,10 @@ import com.google.protobuf.ByteString;
 import com.media.quickmedia.model.Image;
 import com.media.quickmedia.repository.ImageRepository;
 import com.media.quickmedia.service.error.RepositoryException;
+import com.proto.service.BatchUploadRequest;
+import com.proto.service.Key;
+import com.proto.service.UploadRequest;
+import io.grpc.StatusRuntimeException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,6 +19,8 @@ import org.springframework.http.codec.multipart.FilePart;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -229,6 +235,49 @@ class ImageServiceTest {
                 .thenThrow(new RuntimeException());
 
         StepVerifier.create(imageService.removeImage("id"))
+                .verifyErrorSatisfies(error->{
+                    assertTrue(error instanceof RepositoryException);
+                });
+    }
+
+    @Test
+    void when_batchUpload_success_thenReturns(){
+        var uploadRequest = List.of(UploadRequest.newBuilder()
+                        .setKey(Key
+                                .newBuilder()
+                                .setKey("hello").build()).build(),
+        UploadRequest.newBuilder()
+                .setKey(Key.newBuilder()
+                        .setKey("world").build()).build());
+        var request = BatchUploadRequest.newBuilder()
+                        .addAllUploadRequests(uploadRequest).build();
+        Image img = Image.builder()
+                        .id("something").build();
+
+        when(imageRepository.save(any())).thenReturn(Mono.just(img));
+
+        StepVerifier.create(imageService.batchUpload(request))
+                .consumeNextWith(response->{
+                    assertEquals(2, response.size());
+                }).verifyComplete();
+    }
+    @Test
+    void when_batchUpload_fails_thenThrows(){
+        var uploadRequest = List.of(UploadRequest.newBuilder()
+                        .setKey(Key
+                                .newBuilder()
+                                .setKey("hello").build()).build(),
+                UploadRequest.newBuilder()
+                        .setKey(Key.newBuilder()
+                                .setKey("world").build()).build());
+        var request = BatchUploadRequest.newBuilder()
+                .addAllUploadRequests(uploadRequest).build();
+        Image img = Image.builder()
+                .id("something").build();
+
+        when(imageRepository.save(any())).thenThrow(new RuntimeException());
+
+        StepVerifier.create(imageService.batchUpload(request))
                 .verifyErrorSatisfies(error->{
                     assertTrue(error instanceof RepositoryException);
                 });

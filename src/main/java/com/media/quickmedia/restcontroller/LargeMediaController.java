@@ -47,6 +47,9 @@ public class LargeMediaController {
                 });
     }
 
+    //todo add name validation ie. png jpeg or movie
+    //add a endpoint to get the metadata from an image
+
     @DeleteMapping("/{id}")
     public Mono<String> delete(@PathVariable("id") String id){
         return Mono.just(id)

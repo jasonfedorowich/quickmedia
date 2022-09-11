@@ -14,6 +14,8 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.io.ByteArrayInputStream;
+import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -132,5 +134,33 @@ class GrpcImageServiceTest {
                 });
     }
 
+    @Test
+    void when_uploadBatch_success_thenReturns(){
+        var images = List.of(Image.builder().id("hey").build(), Image.builder().id("world").build());
+        when(imageService.batchUpload(any())).thenReturn(Mono.just(images));
+
+        var request = BatchUploadRequest.getDefaultInstance();
+
+        StepVerifier.create(grpcImageService.batchUpload(Mono.just(request)))
+                .consumeNextWith(batchUploadResponse -> {
+                    assertEquals(2, batchUploadResponse.getUploadResponseList().size());
+                    var set = Set.of("hey", "world");
+                    assertTrue(set.contains(batchUploadResponse.getUploadResponseList().get(0).getKey().getKey()));
+                    assertTrue(set.contains(batchUploadResponse.getUploadResponseList().get(1).getKey().getKey()));
+
+                }).verifyComplete();
+    }
+    @Test
+    void when_uploadBatch_fails_thenThrows(){
+        var images = List.of(Image.builder().id("hey").build(), Image.builder().id("world").build());
+        when(imageService.batchUpload(any())).thenThrow(new RuntimeException());
+
+        var request = BatchUploadRequest.getDefaultInstance();
+
+        StepVerifier.create(grpcImageService.batchUpload(Mono.just(request)))
+                .verifyErrorSatisfies(error -> {
+                   assertTrue(error instanceof StatusRuntimeException);
+                });
+    }
 
 }

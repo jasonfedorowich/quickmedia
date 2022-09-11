@@ -1,6 +1,7 @@
 package com.media.quickmedia.service.grpc;
 
 import com.google.protobuf.ByteString;
+import com.media.quickmedia.model.Image;
 import com.media.quickmedia.service.ImageService;
 import com.proto.service.*;
 import com.proto.service.DataChunk;
@@ -18,12 +19,14 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
 import java.io.IOException;
+import java.util.stream.Collectors;
 
 @GrpcService
 @Slf4j
 @RequiredArgsConstructor
 public class GrpcImageService extends ReactorImageServiceGrpc.ImageServiceImplBase {
 
+    //todo addd it tests
     private final ImageService imageService;
     @Override
     public Mono<UploadResponse> upload(Mono<UploadRequest> request) {
@@ -83,6 +86,31 @@ public class GrpcImageService extends ReactorImageServiceGrpc.ImageServiceImplBa
                                 .setKey(objectId).build()).build()))
                 .onErrorMap(ignored->{
                     log.error("Error received from delete: {}", ignored.getMessage());
+                    throw new StatusRuntimeException(Status.UNAVAILABLE);
+                });
+    }
+
+    @Override
+    public Mono<BatchUploadResponse> batchUpload(Mono<BatchUploadRequest> request) {
+        return request.doOnNext(next->{
+            log.info("Received request to batchUpload image");
+        })
+                .flatMap(imageService::batchUpload)
+                .flatMap(images -> {
+                    var uploads = images.stream()
+                            .map(Image::getId)
+                            .map(id-> UploadResponse
+                                    .newBuilder()
+                                    .setKey(Key.newBuilder()
+                                            .setKey(id).build()).build())
+                            .toList();
+
+                    return Mono.just(BatchUploadResponse
+                            .newBuilder()
+                            .addAllUploadResponse(uploads).build());
+                })
+                .doOnError(ignored->{
+                    log.error("Error received from batch upload: {}", ignored.getMessage());
                     throw new StatusRuntimeException(Status.UNAVAILABLE);
                 });
     }

@@ -39,3 +39,11 @@ message DeleteRequest{
 message DeleteResponse{
   Key key = 1;
 }
+
+message BatchUploadRequest{
+  repeated UploadRequest uploadRequests = 1;
+}
+
+message BatchUploadResponse{
+  repeated UploadResponse uploadResponse = 1;
+}

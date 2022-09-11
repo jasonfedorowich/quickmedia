@@ -4,15 +4,19 @@ import com.google.protobuf.ByteString;
 import com.media.quickmedia.model.Image;
 import com.media.quickmedia.repository.ImageRepository;
 import com.media.quickmedia.service.error.RepositoryException;
+import com.proto.service.BatchUploadRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.io.ByteArrayInputStream;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -70,5 +74,23 @@ public class ImageService {
                     throw new RepositoryException(String.format("Failed to remove image with id: %s", id));
                 })
                 .thenReturn(id);
+    }
+
+    @Transactional
+    public Mono<List<Image>> batchUpload(BatchUploadRequest batchUploadRequest) {
+        return Mono.just(batchUploadRequest)
+                .flatMapIterable(BatchUploadRequest::getUploadRequestsList)
+                .flatMap(uploadRequest -> {
+                    var image = Image.builder()
+                            .content(uploadRequest.getData().getData().toByteArray())
+                            .name(uploadRequest.getKey().getKey())
+                            .build();
+                    return imageRepository.save(image);
+                })
+                .collectList()
+                .doOnError(error->{
+                    throw new RepositoryException(String.format("Failed to remove image with id: %s", batchUploadRequest.toString()));
+                }
+                );
     }
 }
