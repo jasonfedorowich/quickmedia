@@ -114,4 +114,14 @@ public class GrpcImageService extends ReactorImageServiceGrpc.ImageServiceImplBa
                     throw new StatusRuntimeException(Status.UNAVAILABLE);
                 });
     }
+
+    @Override
+    public Mono<MetaDataResponse> getMetaData(Mono<MetaDataRequest> request) {
+        return request.doOnNext(next-> log.info("Received request to getMetaData image"))
+                .flatMap(imageService::getMetaData)
+                .doOnError(ignored->{
+                    log.error("Error received from get metadata: {}", ignored.getMessage());
+                    throw new StatusRuntimeException(Status.UNAVAILABLE);
+                });
+    }
 }

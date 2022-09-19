@@ -7,6 +7,7 @@ import com.media.quickmedia.repository.ImageRepository;
 import com.media.quickmedia.repository.config.GridFsConfiguration;
 import com.media.quickmedia.restcontroller.RestImageController;
 import lombok.extern.slf4j.Slf4j;
+import org.bson.types.ObjectId;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,6 +54,8 @@ public class ImageServiceIntegrationTest {
     @Test
     public void when_uploadImage_success_thenDownload_imageSuccess_thenSucceed(){
         var image = uploadFile();
+        ObjectId objectId = new ObjectId(image.getId());
+        log.info("Date is: {}", objectId.getDate());
         assertFalse(image.getId().isEmpty());
         downloadImage(image.getId());
         deleteImage(image.getId());

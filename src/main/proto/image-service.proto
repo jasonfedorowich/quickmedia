@@ -12,5 +12,6 @@ service ImageService{
   rpc download(DownloadRequest) returns (DownloadResponse);
   rpc deleteImage(DeleteRequest) returns (DeleteResponse);
   rpc batchUpload(BatchUploadRequest) returns (BatchUploadResponse);
-
+  rpc downloadImages(DownloadAllImagesRequest) returns (DownloadAllImagesResponse);
+  rpc getMetaData(MetaDataRequest) returns (MetaDataResponse);
 }

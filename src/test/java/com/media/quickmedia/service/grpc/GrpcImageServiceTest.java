@@ -163,4 +163,30 @@ class GrpcImageServiceTest {
                 });
     }
 
+    @Test
+    void when_getMetaData_success_thenReturns(){
+        var metaResp = MetaDataResponse.getDefaultInstance();
+        when(imageService.getMetaData(any())).thenReturn(Mono.just(metaResp));
+
+        var request = MetaDataRequest.getDefaultInstance();
+
+        StepVerifier.create(grpcImageService.getMetaData(Mono.just(request)))
+                .consumeNextWith(metaDataResponse -> {
+                    assertEquals(metaDataResponse, metaResp);
+                }).verifyComplete();
+    }
+
+    @Test
+    void when_getMetaData_fails_thenThrows(){
+        var metaResp = MetaDataResponse.getDefaultInstance();
+        when(imageService.getMetaData(any())).thenThrow(new RuntimeException());
+
+        var request = MetaDataRequest.getDefaultInstance();
+
+        StepVerifier.create(grpcImageService.getMetaData(Mono.just(request)))
+                .verifyErrorSatisfies(error->{
+                    assertTrue(error instanceof StatusRuntimeException);
+                });
+    }
+
 }

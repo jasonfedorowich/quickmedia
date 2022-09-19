@@ -1,13 +1,17 @@
 package com.media.quickmedia.service;
 
 import com.google.protobuf.ByteString;
+import com.media.quickmedia.metadata.MetaDataParser;
 import com.media.quickmedia.model.Image;
 import com.media.quickmedia.repository.ImageRepository;
 import com.media.quickmedia.service.error.RepositoryException;
 import com.proto.service.BatchUploadRequest;
 import com.proto.service.Key;
+import com.proto.service.MetaDataRequest;
 import com.proto.service.UploadRequest;
 import io.grpc.StatusRuntimeException;
+import org.apache.tika.metadata.Metadata;
+import org.bouncycastle.asn1.cms.MetaData;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,9 +42,12 @@ class ImageServiceTest {
 
     private ImageService imageService;
 
+    @Mock
+    private MetaDataParser metaDataParser;
+
     @BeforeEach
     public void init(){
-        imageService = new ImageService(imageRepository);
+        imageService = new ImageService(imageRepository, metaDataParser);
     }
 
 
@@ -281,5 +288,79 @@ class ImageServiceTest {
                 .verifyErrorSatisfies(error->{
                     assertTrue(error instanceof RepositoryException);
                 });
+    }
+
+
+    @Test
+    void when_getMetaData_thenReturns(){
+        var image = Image.builder()
+                        .content(new byte[]{1, 2, 3})
+                                .name("my-id").build();
+        var metaData = new Metadata();
+        metaData.set("hello", "world");
+        metaData.set("this", "blue");
+        when(imageRepository.findById(anyString())).thenReturn(Mono.just(image));
+        when(metaDataParser.parse(any())).thenReturn(metaData);
+        var metaDataReq = MetaDataRequest.newBuilder()
+                        .setKey(Key.newBuilder()
+                                .setKey("my-id").build()).build();
+
+        StepVerifier.create(imageService.getMetaData(metaDataReq)).consumeNextWith(next->{
+            assertEquals(2, next.getMetaDataList().size());
+            var metaDatas = next.getMetaDataList();
+            var val1 = metaDatas.stream()
+                            .filter(imageMetaData -> {
+                                return imageMetaData.getKey().equals("this");
+                            }).findFirst();
+
+            assertTrue(val1.isPresent());
+            assertEquals("blue", val1.get().getValue());
+
+            var val2 = metaDatas.stream()
+                    .filter(imageMetaData -> {
+                        return imageMetaData.getKey().equals("hello");
+                    }).findFirst();
+
+            assertTrue(val2.isPresent());
+            assertEquals("world", val2.get().getValue());
+        }).verifyComplete();
+    }
+
+    @Test
+    void when_getMetaData_repoFails_thenThrows(){
+        var image = Image.builder()
+                .content(new byte[]{1, 2, 3})
+                .name("my-id").build();
+        var metaData = new Metadata();
+        metaData.set("hello", "world");
+        metaData.set("this", "blue");
+        when(imageRepository.findById(anyString())).thenThrow(new RuntimeException());
+
+        var metaDataReq = MetaDataRequest.newBuilder()
+                .setKey(Key.newBuilder()
+                        .setKey("my-id").build()).build();
+
+        StepVerifier.create(imageService.getMetaData(metaDataReq)).verifyErrorSatisfies(error->{
+            assertTrue(error instanceof RepositoryException);
+        });
+    }
+
+    @Test
+    void when_getMetaData_parserFails_thenThrows(){
+        var image = Image.builder()
+                .content(new byte[]{1, 2, 3})
+                .name("my-id").build();
+        var metaData = new Metadata();
+        metaData.set("hello", "world");
+        metaData.set("this", "blue");
+        when(imageRepository.findById(anyString())).thenReturn(Mono.just(image));
+        when(metaDataParser.parse(any())).thenThrow(new RuntimeException());
+        var metaDataReq = MetaDataRequest.newBuilder()
+                .setKey(Key.newBuilder()
+                        .setKey("my-id").build()).build();
+
+        StepVerifier.create(imageService.getMetaData(metaDataReq)).verifyErrorSatisfies(error->{
+            assertTrue(error instanceof RepositoryException);
+        });
     }
 }

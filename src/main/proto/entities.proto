@@ -40,10 +40,38 @@ message DeleteResponse{
   Key key = 1;
 }
 
+message ImageMetaData{
+  string key = 1;
+  string value = 2;
+}
+
 message BatchUploadRequest{
   repeated UploadRequest uploadRequests = 1;
 }
 
 message BatchUploadResponse{
   repeated UploadResponse uploadResponse = 1;
+}
+
+message ImageResponse{
+  DataChunk dataChunk = 1;
+  Key key = 2;
+}
+
+message DownloadAllImagesResponse{
+  repeated ImageResponse imageResponse = 1;
+  string last_id = 2;
+}
+
+message DownloadAllImagesRequest{
+  string start_id = 1;
+  string page_size = 2;
+}
+
+message MetaDataRequest{
+  Key key = 1;
+}
+
+message MetaDataResponse{
+  repeated ImageMetaData metaData = 1;
 }
