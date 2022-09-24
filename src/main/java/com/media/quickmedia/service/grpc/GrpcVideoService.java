@@ -1,6 +1,7 @@
 package com.media.quickmedia.service.grpc;
 
 import com.google.protobuf.ByteString;
+import com.media.quickmedia.model.Image;
 import com.media.quickmedia.service.MediaService;
 import com.proto.service.*;
 import com.salesforce.grpc.contrib.spring.GrpcService;
@@ -14,6 +15,7 @@ import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 @GrpcService
 @Slf4j
@@ -137,5 +139,29 @@ public class GrpcVideoService extends ReactorVideoServiceGrpc.VideoServiceImplBa
                     throw new StatusRuntimeException(Status.UNAVAILABLE);
                 });
 
+    }
+
+    @Override
+    public Mono<BatchUploadResponse> batchUploadVideo(Mono<BatchUploadRequest> request) {
+        return request.doOnNext(next->{
+                    log.info("Received request to batchUpload image");
+                })
+                .flatMap(mediaService::batchUpload)
+                .flatMap(objectIdList -> {
+
+                    var responses = objectIdList.stream()
+                            .map(id -> UploadResponse.newBuilder()
+                                    .setKey(Key.newBuilder()
+                                            .setKey(id.toHexString())
+                                            .build()).build()).toList();
+
+                    return Mono.just(BatchUploadResponse
+                            .newBuilder()
+                            .addAllUploadResponse(responses).build());
+                })
+                .doOnError(ignored->{
+                    log.error("Error received from batch upload: {}", ignored.getMessage());
+                    throw new StatusRuntimeException(Status.UNAVAILABLE);
+                });
     }
 }

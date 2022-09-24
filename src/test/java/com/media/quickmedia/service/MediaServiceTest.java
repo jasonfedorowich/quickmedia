@@ -5,7 +5,11 @@ import com.media.quickmedia.model.Image;
 import com.media.quickmedia.service.error.RepositoryException;
 import com.media.quickmedia.service.utils.DataBufferService;
 import com.mongodb.client.gridfs.model.GridFSFile;
+import com.proto.service.BatchUploadRequest;
+import com.proto.service.Key;
+import com.proto.service.UploadRequest;
 import org.bson.BsonValue;
+import org.bson.ByteBuf;
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,7 +31,9 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.nio.ByteBuffer;
 import java.util.Date;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -295,6 +301,87 @@ class MediaServiceTest {
 
         var oi = new ObjectId("62c314e22525c96a4ae223b3");
         StepVerifier.create(mediaService.delete(oi))
+                .verifyErrorSatisfies(error->{
+                    assertTrue(error instanceof RepositoryException);
+                });
+    }
+
+    @Test
+    void when_batchUpload_success_thenReturns(){
+        var uploadRequest = List.of(UploadRequest.newBuilder()
+                        .setKey(Key
+                                .newBuilder()
+                                .setKey("hello").build()).build(),
+                UploadRequest.newBuilder()
+                        .setKey(Key.newBuilder()
+                                .setKey("world").build()).build());
+        var request = BatchUploadRequest.newBuilder()
+                .addAllUploadRequests(uploadRequest).build();
+
+        byte[] bytes = new byte[]{1, 2, 3};
+        var bs = ByteString.copyFrom(bytes);
+        DefaultDataBufferFactory dataBufferFactory = new DefaultDataBufferFactory();
+        var db = dataBufferFactory.wrap(bs.asReadOnlyByteBuffer());
+
+        var oi = new ObjectId("62c314e22525c96a4ae223b3");
+        when(dataBufferService.makeDataBuffer(any(ByteBuffer.class))).thenReturn(db);
+        when(fsTemplate.store(any(), anyString())).thenReturn(Mono.just(oi));
+
+
+        StepVerifier.create(mediaService.batchUpload(request))
+                .consumeNextWith(response->{
+                    assertEquals(2, response.size());
+                }).verifyComplete();
+    }
+
+    @Test
+    void when_batchUpload_fails_cantConvert_thenThrows(){
+        var uploadRequest = List.of(UploadRequest.newBuilder()
+                        .setKey(Key
+                                .newBuilder()
+                                .setKey("hello").build()).build(),
+                UploadRequest.newBuilder()
+                        .setKey(Key.newBuilder()
+                                .setKey("world").build()).build());
+        var request = BatchUploadRequest.newBuilder()
+                .addAllUploadRequests(uploadRequest).build();
+
+        byte[] bytes = new byte[]{1, 2, 3};
+        var bs = ByteString.copyFrom(bytes);
+        DefaultDataBufferFactory dataBufferFactory = new DefaultDataBufferFactory();
+        var db = dataBufferFactory.wrap(bs.asReadOnlyByteBuffer());
+
+        var oi = new ObjectId("62c314e22525c96a4ae223b3");
+        when(dataBufferService.makeDataBuffer(any(ByteBuffer.class))).thenThrow(new RuntimeException());
+
+        StepVerifier.create(mediaService.batchUpload(request))
+                .verifyErrorSatisfies(error->{
+                    assertTrue(error instanceof RepositoryException);
+                });
+    }
+
+    @Test
+    void when_batchUpload_fails_cantStore_thenThrows(){
+        var uploadRequest = List.of(UploadRequest.newBuilder()
+                        .setKey(Key
+                                .newBuilder()
+                                .setKey("hello").build()).build(),
+                UploadRequest.newBuilder()
+                        .setKey(Key.newBuilder()
+                                .setKey("world").build()).build());
+        var request = BatchUploadRequest.newBuilder()
+                .addAllUploadRequests(uploadRequest).build();
+
+        byte[] bytes = new byte[]{1, 2, 3};
+        var bs = ByteString.copyFrom(bytes);
+        DefaultDataBufferFactory dataBufferFactory = new DefaultDataBufferFactory();
+        var db = dataBufferFactory.wrap(bs.asReadOnlyByteBuffer());
+
+        var oi = new ObjectId("62c314e22525c96a4ae223b3");
+        when(dataBufferService.makeDataBuffer(any(ByteBuffer.class))).thenThrow(new RuntimeException());
+
+
+        StepVerifier.create(mediaService.batchUpload(request))
                 .verifyErrorSatisfies(error->{
                     assertTrue(error instanceof RepositoryException);
                 });

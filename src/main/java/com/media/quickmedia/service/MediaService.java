@@ -1,8 +1,10 @@
 package com.media.quickmedia.service;
 
 import com.google.protobuf.ByteString;
+import com.media.quickmedia.model.Image;
 import com.media.quickmedia.service.error.RepositoryException;
 import com.media.quickmedia.service.utils.DataBufferService;
+import com.proto.service.BatchUploadRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.types.ObjectId;
@@ -16,6 +18,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.io.InputStream;
+import java.util.List;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 import static org.springframework.data.mongodb.core.query.Query.query;
@@ -110,4 +113,21 @@ public class MediaService {
                 .thenReturn(objectId);
     }
 
+    public Mono<List<ObjectId>> batchUpload(BatchUploadRequest batchUploadRequest) {
+        return Mono.just(batchUploadRequest)
+                .flatMapIterable(BatchUploadRequest::getUploadRequestsList)
+                .flatMap(uploadRequest -> {
+                    var byteString = uploadRequest.getData().getData();
+                    var fileName = uploadRequest.getKey().getKey();
+                    return gridFsTemplate.store(Flux.just(dataBufferService
+                                    .makeDataBuffer(byteString.asReadOnlyByteBuffer())),
+                            fileName);
+                })
+                .collectList()
+                .doOnError(error->{
+                            throw new RepositoryException(String.format("Failed to batch upload video with id: %s", batchUploadRequest.toString()));
+                        }
+                );
+
+    }
 }

@@ -15,6 +15,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.io.ByteArrayInputStream;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -208,5 +209,36 @@ class GrpcVideoServiceTest {
                     assertTrue(error instanceof StatusRuntimeException);
                 });
 
+    }
+
+    @Test
+    void when_batchUploadVideo_success_thenReturns(){
+        ObjectId expected = new ObjectId("62c314e22525c96a4ae223b3");
+        var objectIds = List.of(expected, expected, expected);
+        when(mediaService.batchUpload(any())).thenReturn(Mono.just(objectIds));
+
+        var request = BatchUploadRequest.getDefaultInstance();
+
+        StepVerifier.create(grpcVideoService.batchUploadVideo(Mono.just(request))).consumeNextWith(
+                next->{
+                    assertEquals(3, next.getUploadResponseList().size());
+                    assertEquals("62c314e22525c96a4ae223b3", next.getUploadResponseList().get(0).getKey().getKey());
+                }
+        ).verifyComplete();
+    }
+
+    @Test
+    void when_batchUploadVideo_fails_thenThrows(){
+        ObjectId expected = new ObjectId("62c314e22525c96a4ae223b3");
+        var objectIds = List.of(expected, expected, expected);
+        when(mediaService.batchUpload(any())).thenThrow(new RuntimeException());
+
+        var request = BatchUploadRequest.getDefaultInstance();
+
+        StepVerifier.create(grpcVideoService.batchUploadVideo(Mono.just(request))).verifyErrorSatisfies(
+                error->{
+                    assertTrue(error instanceof StatusRuntimeException);
+                    }
+        );
     }
 }

@@ -95,7 +95,7 @@ public class ImageService {
                 })
                 .collectList()
                 .doOnError(error->{
-                    throw new RepositoryException(String.format("Failed to remove image with id: %s", batchUploadRequest.toString()));
+                    throw new RepositoryException(String.format("Failed to batch upload image with id: %s", batchUploadRequest.toString()));
                 }
                 );
     }
