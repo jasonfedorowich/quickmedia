@@ -1,6 +1,5 @@
 package com.media.quickmedia.metadata;
 
-import com.media.quickmedia.config.MongoDbTestConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -19,8 +18,8 @@ import java.util.stream.Collectors;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 @ExtendWith(SpringExtension.class)
 @Slf4j
-@Import({MongoDbTestConfiguration.class})
-@AutoConfigureDataMongo
+//@Import({MongoDbTestConfiguration.class})
+//@AutoConfigureDataMongo
 public class MetaDataParserIntegrationTest {
 
     @Autowired
